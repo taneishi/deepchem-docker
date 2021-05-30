@@ -10,8 +10,8 @@ import argparse
 import timeit
 import os
 
-#import intel_pytorch_extension as ipex
-#ipex.enable_auto_mixed_precision(mixed_dtype = torch.bfloat16)
+import intel_pytorch_extension as ipex
+ipex.enable_auto_mixed_precision(mixed_dtype = torch.bfloat16)
 
 class MLP(nn.Module):
     def __init__(self, input_dim=1974, dropout=0.1):
@@ -96,6 +96,8 @@ def test(dataloader, net, loss_func):
     y_score = np.concatenate(y_score)
     y_pred = [np.argmax(x) for x in y_score]
     y_true = np.concatenate(y_true)
+        
+    confusion_matrix = metrics.confusion_matrix(y_true, y_pred).flatten()
 
     if np.sum(y_pred) != 0:
         acc = metrics.accuracy_score(y_true, y_pred)
@@ -103,18 +105,14 @@ def test(dataloader, net, loss_func):
         prec = metrics.precision_score(y_true, y_pred)
         recall = metrics.recall_score(y_true, y_pred)
 
-        confusion_matrix = metrics.confusion_matrix(y_true, y_pred).flatten()
-
         print(' %s test_loss %5.3f test_auc %5.3F test_prec %5.3f test_recall %5.3f' % (confusion_matrix, test_loss / index, auc, prec, recall), end='')
-
     else:
         print(' %s test_loss %5.3f' % (confusion_matrix, test_loss / index), end='')
 
     return test_loss / index
 
 def main(args):
-    device = torch.device('cuda' if torch.cuda.is_available() and not args.cpu else 'cpu')
-    #device = ipex.DEVICE
+    device = ipex.DEVICE
     print('Using %s device.' % device)
 
     train_dataloader, test_dataloader = load_dataset(args, device)
